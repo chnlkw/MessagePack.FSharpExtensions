@@ -3,11 +3,48 @@ module MessagePack.Tests.DUTest
 open Xunit
 open MessagePack
 
+let convert_nongeneric (value: 'a) =
+  let resolver = WithFSharpDefaultResolver() :> IFormatterResolver
+  let t = value.GetType()
+  let bin : byte[] = MessagePackSerializer.NonGeneric.Serialize(t, value :> obj, resolver)
+  let actual :'a = MessagePackSerializer.NonGeneric.Deserialize(t, bin, resolver) :?> 'a
+  Assert.Equal<'a>(value, actual)
+
 [<MessagePackObject>]
 type SimpleUnion =
   | A
   | B of int
   | C of int64 * float32
+
+[<MessagePackObject>]
+type SimpleUnion2 =
+  | A2
+  | AU2 of unit
+  | B2 of int
+  | C2 of int64 * float32
+
+[<Fact>] // failed
+let sampleA () =
+    convert_nongeneric A
+
+[<Fact>]
+let ``sampleA2`` () =
+    convert_nongeneric A2
+
+[<Fact>]
+let sampleAU () =
+    convert_nongeneric <| AU2 ()
+    
+[<Fact>]
+let sampleB () =
+    convert_nongeneric (B 1)
+    convert_nongeneric (B2 1)
+
+[<Fact>]
+let sampleC () =
+    convert_nongeneric <| C(1L, 1.0f)
+    convert_nongeneric <| C2(1L, 1.0f)
+
 
 [<Fact>]
 let simple () =
